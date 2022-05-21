@@ -65,19 +65,9 @@ task("add-nft-to-pool", "Add and config new nft asset to lend pool")
         underlyingAsset: asset,
       },
     ];
-    await waitForTx(await lendPoolConfiguratorProxy.connect(poolAdminSigner).batchInitNft(initInputParams));
+    //await waitForTx(await lendPoolConfiguratorProxy.connect(poolAdminSigner).batchInitNft(initInputParams));
 
     console.log("Configure nft parameters to lend pool");
-    await waitForTx(
-      await lendPoolConfiguratorProxy
-        .connect(poolAdminSigner)
-        .configureNftAsCollateral(
-          asset,
-          nftParam.baseLTVAsCollateral,
-          nftParam.liquidationThreshold,
-          nftParam.liquidationBonus
-        )
-    );
 
     let cfgInputParams: {
       asset: string;
