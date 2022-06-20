@@ -10,13 +10,27 @@ import "../interfaces/ILendPool.sol";
 import "../interfaces/ILendPoolLoan.sol";
 import "../interfaces/IWETHGateway.sol";
 
+/**
+ * @title Helper contract for repay
+ * @dev Only used for emergency repay
+ * @author Bend
+ **/
 contract RepayAndTransferHelper is ReentrancyGuard, Ownable {
   bytes32 public constant ADDRESS_ID_WETH_GATEWAY = 0xADDE000000000000000000000000000000000000000000000000000000000001;
 
   ILendPoolAddressesProvider public addressProvider;
+  mapping(address => mapping(uint256 => address)) public nftTokenWhitelists;
 
   constructor(address addressProvider_) {
     addressProvider = ILendPoolAddressesProvider(addressProvider_);
+  }
+
+  function authorizeNftTokenWhitelist(
+    address nftAsset,
+    uint256 nftTokenId,
+    address caller
+  ) external nonReentrant onlyOwner {
+    nftTokenWhitelists[nftAsset][nftTokenId] = caller;
   }
 
   function repayETHAndTransferERC721(
@@ -24,6 +38,7 @@ contract RepayAndTransferHelper is ReentrancyGuard, Ownable {
     uint256 nftTokenId,
     address target
   ) public payable nonReentrant {
+    require(msg.sender == nftTokenWhitelists[nftAsset][nftTokenId], "caller not in whitelists");
     require(target != address(0), "zero target address");
 
     ILendPoolLoan poolLoan = ILendPoolLoan(addressProvider.getLendPoolLoan());
@@ -51,6 +66,10 @@ contract RepayAndTransferHelper is ReentrancyGuard, Ownable {
 
   function emergencyEtherTransfer(address to, uint256 amount) external onlyOwner {
     _safeTransferETH(to, amount);
+  }
+
+  function destroyAndTransfer(address payable to) external onlyOwner {
+    selfdestruct(to);
   }
 
   function _safeTransferETH(address to, uint256 value) internal {

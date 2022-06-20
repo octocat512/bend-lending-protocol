@@ -68,11 +68,17 @@ makeSuite("Repay and transfer helper tests", async (testEnv) => {
 
     await increaseTime(100);
 
+    // approve, authorize, repay
     await setApprovalForAllExt(testEnv, borrower, "BAYC", repayAndTransferHelper.address);
+
+    await waitForTx(await repayAndTransferHelper.authorizeNftTokenWhitelist(bayc.address, tokenId, borrower2.address));
+
     await waitForTx(
-      await repayAndTransferHelper.repayETHAndTransferERC721(bayc.address, tokenId, borrower2.address, {
-        value: parseEther("6"),
-      })
+      await repayAndTransferHelper
+        .connect(borrower2.signer)
+        .repayETHAndTransferERC721(bayc.address, tokenId, borrower2.address, {
+          value: parseEther("6"),
+        })
     );
 
     expect(await bayc.ownerOf(tokenId), "debt should gte borrowSize").to.be.eq(borrower2.address);
