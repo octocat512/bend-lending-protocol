@@ -28,20 +28,17 @@ struct BridgeParams {
   uint256 destinationDeadline;
 }
 
-contract HopIntegration is Ownable {
-  address public wethAddr;
-  address public bridgeRouterAddr;
+contract BridgeIntegration is Ownable {
+  // address public bridgeRouterAddr;
   address public wethGatewayAddr;
   address public inboxAddr;
 
   constructor(
-    address wethAddr_,
-    address bridgeRouterAddr_,
+    // address bridgeRouterAddr_,
     address wethGatewayAddr_,
     address inboxAddr_
   ) {
-    wethAddr = wethAddr_;
-    bridgeRouterAddr = bridgeRouterAddr_;
+    // bridgeRouterAddr = bridgeRouterAddr_;
     wethGatewayAddr = wethGatewayAddr_;
     inboxAddr = inboxAddr_;
   }
@@ -71,9 +68,7 @@ contract HopIntegration is Ownable {
     address nftAsset,
     uint256 nftTokenId,
     address onBehalfOf,
-    uint16 referralCode,
-    //
-    uint256 chainId
+    uint16 referralCode
   ) public {
     // borrowETH
     _borrowETH(amount, nftAsset, nftTokenId, onBehalfOf, referralCode);
