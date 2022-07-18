@@ -13,6 +13,7 @@
     "hardhat:localhost": "hardhat --network localhost",
     "hardhat:develop": "hardhat --network develop",
     "hardhat:rinkeby": "hardhat --network rinkeby",
+    "hardhat:arbRinkeby": "hardhat --network arbRinkeby",
     "hardhat:kovan": "hardhat --network kovan",
     "hardhat:main": "hardhat --network main",
     "size": "npm run compile && npm run hardhat size-contracts",
@@ -57,6 +58,7 @@
     "prepublishOnly": "npm run compile"
   },
   "devDependencies": {
+    "@arbitrum/sdk": "^2.0.5",
     "@chainlink/contracts": "^0.2.2",
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-etherscan": "^2.0.2",

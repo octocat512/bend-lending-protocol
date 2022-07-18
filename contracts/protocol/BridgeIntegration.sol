@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.4;
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import {ILendPool} from "../interfaces/ILendPool.sol";
-import {IWETHGateway} from "../interfaces/IWETHGateway.sol";
+import {ILendPoolLoan} from "../interfaces/ILendPoolLoan.sol";
+import {ILendPoolAddressesProvider} from "../interfaces/ILendPoolAddressesProvider.sol";
 import {IInbox} from "arb-bridge-eth/contracts/bridge/interfaces/IInbox.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 
 interface IHopRouter {
   function sendToL2(
@@ -28,39 +30,45 @@ struct BridgeParams {
   uint256 destinationDeadline;
 }
 
-contract BridgeIntegration is Ownable {
-  // address public bridgeRouterAddr;
-  address public wethGatewayAddr;
-  address public inboxAddr;
+struct TicketParams {
+  address target;
+  uint256 arbCallValue;
+  uint256 maxSubmissionCost;
+  uint256 maxGas;
+  uint256 gasPriceBid;
+}
 
-  constructor(
-    // address bridgeRouterAddr_,
-    address wethGatewayAddr_,
-    address inboxAddr_
-  ) {
-    // bridgeRouterAddr = bridgeRouterAddr_;
-    wethGatewayAddr = wethGatewayAddr_;
-    inboxAddr = inboxAddr_;
-  }
+contract BridgeIntegration is ERC721Holder {
+  ILendPoolAddressesProvider internal _addressProvider;
 
-  function _borrowETH(
-    uint256 amount,
-    address nftAsset,
-    uint256 nftTokenId,
-    address onBehalfOf,
-    uint16 referralCode
-  ) private {
-    IWETHGateway(wethGatewayAddr).borrowETH(amount, nftAsset, nftTokenId, onBehalfOf, referralCode);
-  }
+  IWETH internal WETH;
 
-  function borrowETH(
-    uint256 amount,
-    address nftAsset,
-    uint256 nftTokenId,
-    address onBehalfOf,
-    uint16 referralCode
+  IInbox internal _inbox;
+
+  function initialize(
+    address addressProvider,
+    address weth,
+    address inbox
   ) public {
-    _borrowETH(amount, nftAsset, nftTokenId, onBehalfOf, referralCode);
+    _addressProvider = ILendPoolAddressesProvider(addressProvider);
+    _inbox = IInbox(inbox);
+    WETH = IWETH(weth);
+
+    WETH.approve(address(_getLendPool()), type(uint256).max);
+  }
+
+  function _getLendPool() internal view returns (ILendPool) {
+    return ILendPool(_addressProvider.getLendPool());
+  }
+
+  function _getLendPoolLoan() internal view returns (ILendPoolLoan) {
+    return ILendPoolLoan(_addressProvider.getLendPoolLoan());
+  }
+
+  function authorizeLendPoolNFT(address[] calldata nftAssets) external {
+    for (uint256 i = 0; i < nftAssets.length; i++) {
+      IERC721Upgradeable(nftAssets[i]).setApprovalForAll(address(_getLendPool()), true);
+    }
   }
 
   function borrowAndTeleportETH(
@@ -68,12 +76,37 @@ contract BridgeIntegration is Ownable {
     address nftAsset,
     uint256 nftTokenId,
     address onBehalfOf,
-    uint16 referralCode
-  ) public {
+    uint16 referralCode,
+    TicketParams calldata ticket
+  ) external returns (uint256) {
     // borrowETH
-    _borrowETH(amount, nftAsset, nftTokenId, onBehalfOf, referralCode);
+    ILendPool cachedPool = _getLendPool();
+    ILendPoolLoan cachedPoolLoan = _getLendPoolLoan();
+
+    uint256 loanId = cachedPoolLoan.getCollateralLoanId(nftAsset, nftTokenId);
+    if (loanId == 0) {
+      IERC721Upgradeable(nftAsset).safeTransferFrom(msg.sender, address(this), nftTokenId);
+    }
+    cachedPool.borrow(address(WETH), amount, nftAsset, nftTokenId, onBehalfOf, referralCode);
+    WETH.withdraw(amount);
+    // _safeTransferETH(onBehalfOf, amount);
 
     // teleportETH
+    // use standard
+
+    bytes memory data = abi.encodeWithSelector(BridgeIntegration.redeem.selector, onBehalfOf);
+
+    return
+      _inbox.createRetryableTicket{value: amount}(
+        ticket.target,
+        ticket.arbCallValue,
+        ticket.maxSubmissionCost,
+        onBehalfOf,
+        onBehalfOf,
+        ticket.maxGas,
+        ticket.gasPriceBid,
+        data
+      );
 
     // use hop bridge
     // BridgeParams memory params = BridgeParams({
@@ -95,9 +128,23 @@ contract BridgeIntegration is Ownable {
     //   address(0), // relayer address
     //   0 // relayer fee
     // );
+  }
 
-    // use standard bridge
-    IInbox inbox = IInbox(inboxAddr);
-    inbox.depositEth{value: amount}(0);
+  // function is used on l2
+  function redeem(address to) external payable {
+    _safeTransferETH(to, msg.value);
+  }
+
+  function _safeTransferETH(address to, uint256 value) internal {
+    (bool success, ) = to.call{value: value}(new bytes(0));
+    require(success, "ETH_TRANSFER_FAILED");
+  }
+
+  receive() external payable {
+    require(msg.sender == address(WETH), "Receive not allowed");
+  }
+
+  fallback() external payable {
+    revert("Fallback not allowed");
   }
 }

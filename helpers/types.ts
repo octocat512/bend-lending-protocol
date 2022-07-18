@@ -12,6 +12,7 @@ export enum eEthereumNetwork {
   localhost = "localhost",
   develop = "develop",
   rinkeby = "rinkeby",
+  arbRinkey = "arbRinkey",
   kovan = "kovan",
   main = "main",
 }
@@ -348,6 +349,7 @@ export interface iEthereumParamsPerNetwork<T> {
   [eEthereumNetwork.rinkeby]: T;
   [eEthereumNetwork.kovan]: T;
   [eEthereumNetwork.main]: T;
+  [eEthereumNetwork.arbRinkey]?: T;
 }
 
 export interface iParamsPerPool<T> {

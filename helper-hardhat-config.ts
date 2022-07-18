@@ -41,6 +41,9 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [eEthereumNetwork.coverage]: "http://localhost:8555",
   [eEthereumNetwork.hardhat]: "http://localhost:8545",
   [eEthereumNetwork.localhost]: "http://localhost:8545",
+  [eEthereumNetwork.arbRinkey]: ALCHEMY_KEY
+    ? `https://arb-rinkeby.g.alchemy.com/v2/${ALCHEMY_KEY}`
+    : `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
 };
 
 export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
@@ -51,6 +54,7 @@ export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
   [eEthereumNetwork.coverage]: 65 * GWEI,
   [eEthereumNetwork.hardhat]: 65 * GWEI,
   [eEthereumNetwork.localhost]: 65 * GWEI,
+  [eEthereumNetwork.arbRinkey]: 65 * GWEI,
 };
 
 export const BLOCK_TO_FORK: iParamsPerNetwork<number | undefined> = {
@@ -61,4 +65,5 @@ export const BLOCK_TO_FORK: iParamsPerNetwork<number | undefined> = {
   [eEthereumNetwork.coverage]: 0,
   [eEthereumNetwork.hardhat]: 0,
   [eEthereumNetwork.localhost]: 0,
+  [eEthereumNetwork.arbRinkey]: 0,
 };
