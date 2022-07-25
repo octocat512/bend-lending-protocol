@@ -7,6 +7,10 @@ import {ILendPoolLoan} from "../interfaces/ILendPoolLoan.sol";
 import {ILendPoolAddressesProvider} from "../interfaces/ILendPoolAddressesProvider.sol";
 import {IInbox} from "arb-bridge-eth/contracts/bridge/interfaces/IInbox.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
+import {IStargateRouterETH} from "../interfaces/IStargateRouterETH.sol";
+import {IStargateReceiver} from "../interfaces/IStargateReceiver.sol";
+import {IStargateRouter} from "../interfaces/IStargateRouter.sol";
+import "hardhat/console.sol";
 
 interface IHopRouter {
   function sendToL2(
@@ -38,7 +42,7 @@ struct TicketParams {
   uint256 gasPriceBid;
 }
 
-contract BridgeIntegration is ERC721Holder {
+contract BridgeIntegration is ERC721Holder, IStargateReceiver {
   ILendPoolAddressesProvider internal _addressProvider;
 
   IWETH internal WETH;
@@ -130,6 +134,41 @@ contract BridgeIntegration is ERC721Holder {
     // );
   }
 
+  function sgReceive(
+    uint16 _srcChainId, // the remote chainId sending the tokens
+    bytes memory _srcAddress, // the remote Bridge address
+    uint256 _nonce,
+    address _token, // the token contract on the local chain
+    uint256 amountLD, // the qty of local _token contract tokens
+    bytes memory payload
+  ) external payable override {
+    (address nftAsset, uint256 nftTokenId, address onBeHalfOf) = abi.decode(payload, (address, uint256, address));
+
+    ILendPool cachedPool = _getLendPool();
+    ILendPoolLoan cachedPoolLoan = _getLendPoolLoan();
+
+    uint256 loanId = cachedPoolLoan.getCollateralLoanId(nftAsset, nftTokenId);
+    require(loanId > 0, "collateral loan id not exist");
+
+    (address reserveAsset, uint256 repayDebtAmount) = cachedPoolLoan.getLoanReserveBorrowAmount(loanId);
+    require(reserveAsset == address(WETH), "loan reserve not WETH");
+
+    if (amountLD < repayDebtAmount) {
+      repayDebtAmount = amountLD;
+    }
+
+    require(amountLD >= (repayDebtAmount), "msg.value is less than repay amount");
+
+    WETH.deposit{value: repayDebtAmount}();
+
+    (uint256 paybackAmount, bool burn) = cachedPool.repay(nftAsset, nftTokenId, amountLD);
+
+    // refund remaining dust eth
+    if (amountLD > paybackAmount) {
+      _safeTransferETH(onBeHalfOf, amountLD - paybackAmount);
+    }
+  }
+
   // function is used on l2
   function redeem(address to) external payable {
     _safeTransferETH(to, msg.value);
@@ -141,10 +180,10 @@ contract BridgeIntegration is ERC721Holder {
   }
 
   receive() external payable {
-    require(msg.sender == address(WETH), "Receive not allowed");
+    // require(msg.sender == address(WETH), "Receive not allowed");
   }
 
   fallback() external payable {
-    revert("Fallback not allowed");
+    // revert("Fallback not allowed");
   }
 }

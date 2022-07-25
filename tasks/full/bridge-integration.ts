@@ -4,18 +4,23 @@ import { eContractid, eNetwork } from "../../helpers/types";
 import { getDeploySigner } from "../../helpers/contracts-getters";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
-  BridgeIntegration,
   BridgeIntegrationFactory,
+  CustomRouterETHFactory,
   DebtTokenFactory,
-  ERC721Factory,
   MintableERC721Factory,
+  RouterETH,
+  RouterETHFactory,
 } from "../../types";
+import { IStargateRouterFactory } from "../../types/IStargateRouterFactory";
 import { DRE, getDb, notFalsyOrZeroAddress, omit } from "../../helpers/misc-utils";
 import { waitForTx } from "../../helpers/misc-utils";
 import { L1ToL2MessageGasEstimator } from "@arbitrum/sdk-classic";
 import { parseUnits } from "ethers/lib/utils";
 
-task("full:deploy-bridge-integration", "Deploy bridge integration contract for full enviroment")
+// const BAYCAddr = (await getDb(DRE.network.name).get(`BAYC`).value()).address;
+const BAYCAddr = "0x588D1a07ccdb224cB28dCd8E3dD46E16B3a72b5e";
+
+task("deploy:bridge-integration", "Deploy bridge integration contract and initialize configuration")
   .addFlag("verify", "Verify contracts at Etherscan")
   // .addParam("pool", `Pool name to retrieve configuration, supported: ${Object.values(ConfigNames)}`)
   .setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
@@ -25,6 +30,18 @@ task("full:deploy-bridge-integration", "Deploy bridge integration contract for f
       // const wethGatewayAddr = await getContractAddressInDb(eContractid.WETHGateway);
       const bridgeIntegration = await new BridgeIntegrationFactory(await getDeploySigner()).deploy();
       // await insertContractAddressInDb(eContractid.BridgeIntegration, bridgeIntegration.address);
+
+      await waitForTx(
+        await bridgeIntegration.initialize(
+          "0xE55870eBB007a50B0dfAbAdB1a21e4bFcee5299b",
+          "0xc778417e063141139fce010982780140aa0cd5ab",
+          "0x578bade599406a8fe3d24fd7f7211c0911f5b29e"
+        )
+      );
+
+      await waitForTx(await bridgeIntegration.authorizeLendPoolNFT([BAYCAddr]));
+
+      console.log("finished initilization");
       return withSaveAndVerify(bridgeIntegration, eContractid.BridgeIntegration, [], true);
     } catch (error) {
       throw error;
@@ -37,8 +54,6 @@ task("full:verify-debt-token", "verify the debt token")
   .setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
     try {
       await DRE.run("set-DRE");
-      // const network = <eNetwork>DRE.network.name;
-      // const wethGatewayAddr = await getContractAddressInDb(eContractid.WETHGateway);
       const debtToken = DebtTokenFactory.connect("0x054FC05030A65bb30671f28Ea5d668f56e4970D7", await getDeploySigner());
 
       return withSaveAndVerify(debtToken, eContractid.DebtToken, [], true);
@@ -46,32 +61,6 @@ task("full:verify-debt-token", "verify the debt token")
       throw error;
     }
   });
-
-task("test:initialize", "borrow and teleport eth").setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
-  try {
-    await DRE.run("set-DRE");
-
-    const bridgeIntegrationAddr = (await getDb(DRE.network.name).get(`${eContractid.BridgeIntegration}`).value())
-      .address;
-
-    const bridgeIntegration = BridgeIntegrationFactory.connect(bridgeIntegrationAddr, await getDeploySigner());
-    await waitForTx(
-      await bridgeIntegration.initialize(
-        "0xE55870eBB007a50B0dfAbAdB1a21e4bFcee5299b",
-        "0xc778417e063141139fce010982780140aa0cd5ab",
-        "0x578bade599406a8fe3d24fd7f7211c0911f5b29e"
-      )
-    );
-
-    // const BAYCAddr = (await getDb(DRE.network.name).get(`BAYC`).value()).address;
-    const BAYCAddr = "0x588D1a07ccdb224cB28dCd8E3dD46E16B3a72b5e";
-    await waitForTx(await bridgeIntegration.authorizeLendPoolNFT([BAYCAddr]));
-
-    console.log("finished initilization");
-  } catch (error) {
-    throw error;
-  }
-});
 
 task("test:borrow", "borrow and teleport eth").setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
   try {
@@ -81,9 +70,6 @@ task("test:borrow", "borrow and teleport eth").setAction(async ({ verify }, DRE:
     const signer = (await ethers.getSigners())[0];
     const bridgeIntegrationAddr = (await getDb(DRE.network.name).get(`${eContractid.BridgeIntegration}`).value())
       .address;
-
-    // const BAYCAddr = (await getDb(DRE.network.name).get(`BAYC`).value()).address;
-    const BAYCAddr = "0x588D1a07ccdb224cB28dCd8E3dD46E16B3a72b5e";
 
     console.log("bridge-integration-address", bridgeIntegrationAddr);
 
@@ -176,6 +162,130 @@ task("test:gas", "estimate gas fee").setAction(async ({ verify }, DRE: HardhatRu
     const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider);
     const result = await gasEstimator.estimateSubmissionPrice(0);
     console.log("submission fee:", result.submissionPrice.toString());
+  } catch (error) {
+    throw error;
+  }
+});
+
+task("test:sgRouterETH", "test bridging eth from test arb to rinkeby").setAction(
+  async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
+    try {
+      await DRE.run("set-DRE");
+      const ethers = DRE.ethers;
+      const signer = await getDeploySigner();
+      const signerAddr = await signer.getAddress();
+      console.log("signer address: ", signerAddr);
+
+      const router = IStargateRouterFactory.connect("0x6701D9802aDF674E524053bd44AA83ef253efc41", signer);
+      let quoteData = await router.quoteLayerZeroFee(
+        10001, // destination chainId
+        3, // function type: see Bridge.sol for all types
+        signerAddr, // destination of tokens
+        "0x", // payload, using abi.encode()
+        {
+          dstGasForCall: 0, // extra gas, if calling smart contract,
+          dstNativeAmount: 0, // amount of dust dropped in destination wallet
+          dstNativeAddr: signerAddr, // destination wallet for dust
+        }
+      );
+      console.log(ethers.utils.formatEther(quoteData[0]));
+      // arb 0x7f9246106c33ECF3379D2be4664042349284f605
+      // rinkeby 0x2D57DbE0CFbe17FE654a0EBA64dF6a57ee389008
+      const routerETH = RouterETHFactory.connect("0x7f9246106c33ECF3379D2be4664042349284f605", signer);
+
+      // await waitForTx(await routerETH.addLiquidityETH({ value: ethers.utils.parseEther("0.2") }));
+
+      // rinkeby 10001
+      // arb 10010
+      // const tx = await routerETH.swapETH(
+      //   10001, //
+      //   signerAddr,
+      //   signerAddr,
+      //   ethers.utils.parseEther("0.01"),
+      //   ethers.utils.parseEther("0.0095"),
+      //   {
+      //     value: ethers.utils.parseEther("0.2"),
+      //     gasLimit: 1000000,
+      //   }
+      // );
+
+      // await waitForTx(tx);
+    } catch (error) {
+      throw error;
+    }
+  }
+);
+
+task("deploy:CustomRouterETH", "deploy a custom router on abitrum").setAction(
+  async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
+    try {
+      await DRE.run("set-DRE");
+      const signer = await getDeploySigner();
+      const signerAddr = await signer.getAddress();
+      console.log("signer address: ", signerAddr);
+
+      const customRouter = await new CustomRouterETHFactory(signer).deploy(
+        "0x1450e45e7345c4f6967b2A7DD91d9b0D3f65ff83",
+        "0x6701D9802aDF674E524053bd44AA83ef253efc41",
+        "13"
+      );
+      return withSaveAndVerify(
+        customRouter,
+        "CustomRouterETH",
+        ["0x1450e45e7345c4f6967b2A7DD91d9b0D3f65ff83", "0x6701D9802aDF674E524053bd44AA83ef253efc41", "13"],
+        true
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+);
+
+task("test:repay", "teleport eth and repay loan").setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
+  try {
+    await DRE.run("set-DRE");
+    const ethers = DRE.ethers;
+    const signer = await getDeploySigner();
+    const signerAddr = await signer.getAddress();
+    console.log("signer address: ", signerAddr);
+
+    // const router = IStargateRouterFactory.connect("0x6701D9802aDF674E524053bd44AA83ef253efc41", signer);
+    // let quoteData = await router.quoteLayerZeroFee(
+    //   10001, // destination chainId
+    //   3, // function type: see Bridge.sol for all types
+    //   signerAddr, // destination of tokens
+    //   "0x", // payload, using abi.encode()
+    //   {
+    //     dstGasForCall: 0, // extra gas, if calling smart contract,
+    //     dstNativeAmount: 0, // amount of dust dropped in destination wallet
+    //     dstNativeAddr: signerAddr, // destination wallet for dust
+    //   }
+    // );
+    // console.log(ethers.utils.formatEther(quoteData[0]));
+
+    const target = "0x8FcbD3EE1D98Df911760759911B114C77DdD1A10";
+    const customRouterETH = CustomRouterETHFactory.connect("0xD7dce94173ec788B129621c7AD6649F5Fa431B9C", signer);
+
+    // rinkeby 10001
+    // arb 10010
+    const tx = await customRouterETH.swapETH(
+      10001, //
+      signerAddr,
+      target,
+      ethers.utils.parseEther("0.02"),
+      ethers.utils.parseEther("0.0195"),
+      {
+        asset: BAYCAddr,
+        tokenID: "8910",
+        owner: signerAddr,
+      },
+      {
+        value: ethers.utils.parseEther("0.2"),
+        gasLimit: 1000000,
+      }
+    );
+
+    await waitForTx(tx);
   } catch (error) {
     throw error;
   }
