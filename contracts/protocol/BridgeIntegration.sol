@@ -12,28 +12,6 @@ import {IStargateReceiver} from "../interfaces/IStargateReceiver.sol";
 import {IStargateRouter} from "../interfaces/IStargateRouter.sol";
 import "hardhat/console.sol";
 
-interface IHopRouter {
-  function sendToL2(
-    uint256 chainId,
-    address recipient,
-    uint256 amount,
-    uint256 amountOutMin,
-    uint256 deadline,
-    address relayer,
-    uint256 relayerFee
-  ) external payable;
-}
-
-struct BridgeParams {
-  address token;
-  address recipient;
-  address router;
-  uint256 targetChainId;
-  uint256 amount;
-  uint256 destinationAmountOutMin;
-  uint256 destinationDeadline;
-}
-
 struct TicketParams {
   address target;
   uint256 arbCallValue;
@@ -93,11 +71,9 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     }
     cachedPool.borrow(address(WETH), amount, nftAsset, nftTokenId, onBehalfOf, referralCode);
     WETH.withdraw(amount);
-    // _safeTransferETH(onBehalfOf, amount);
 
     // teleportETH
     // use standard
-
     bytes memory data = abi.encodeWithSelector(BridgeIntegration.redeem.selector, onBehalfOf);
 
     return
@@ -111,27 +87,6 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
         ticket.gasPriceBid,
         data
       );
-
-    // use hop bridge
-    // BridgeParams memory params = BridgeParams({
-    //   token: address(0),
-    //   recipient: msg.sender,
-    //   router: bridgeRouterAddr,
-    //   targetChainId: chainId,
-    //   amount: amount,
-    //   destinationAmountOutMin: 0,
-    //   destinationDeadline: 0
-    // });
-    // IHopRouter router = IHopRouter(params.router);
-    // router.sendToL2{value: amount}(
-    //   params.targetChainId,
-    //   params.recipient,
-    //   params.amount,
-    //   params.destinationAmountOutMin,
-    //   params.destinationDeadline,
-    //   address(0), // relayer address
-    //   0 // relayer fee
-    // );
   }
 
   function sgReceive(
@@ -179,11 +134,7 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     require(success, "ETH_TRANSFER_FAILED");
   }
 
-  receive() external payable {
-    // require(msg.sender == address(WETH), "Receive not allowed");
-  }
+  receive() external payable {}
 
-  fallback() external payable {
-    // revert("Fallback not allowed");
-  }
+  fallback() external payable {}
 }

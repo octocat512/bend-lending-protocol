@@ -14,11 +14,13 @@ const protocolContractList = [
   "DebtToken",
   "PunkGateway",
   "WETHGateway",
+  "BridgeIntegration",
+  "CustomRouterETH"
 ];
 
 const miscContractList = ["UiPoolDataProvider", "BendProtocolDataProvider", "WalletBalanceProvider"];
 
-const interfacesContractList = ["IERC20Detailed", "IERC721Detailed", "IIncentivesController"];
+const interfacesContractList = ["IERC20Detailed", "IERC721Detailed", "IIncentivesController", "IStargateRouter"];
 
 const updateAbis = async (subDir, contractList) => {
   contractList.forEach((contract) => {
