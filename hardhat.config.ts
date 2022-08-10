@@ -38,7 +38,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 
 // Prevent to load scripts before compilation and typechain
 if (!SKIP_LOAD) {
-  ["full"].forEach((folder) => {
+  ["full", "misc"].forEach((folder) => {
     const tasksPath = path.join(__dirname, "tasks", folder);
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes(".ts"))
@@ -47,6 +47,8 @@ if (!SKIP_LOAD) {
       });
   });
 }
+
+require(`${path.join(__dirname, "tasks/misc")}/set-bre.ts`);
 
 const getCommonNetworkConfig = (networkName: eNetwork, networkId: number) => ({
   url: NETWORKS_RPC_URL[networkName],

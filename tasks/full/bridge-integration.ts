@@ -1,18 +1,12 @@
 import { task } from "hardhat/config";
-import { getContractAddressInDb, withSaveAndVerify } from "../../helpers/contracts-helpers";
-import { eContractid, eNetwork } from "../../helpers/types";
+import { withSaveAndVerify } from "../../helpers/contracts-helpers";
+import { eContractid } from "../../helpers/types";
 import { getDeploySigner } from "../../helpers/contracts-getters";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import {
-  BridgeIntegrationFactory,
-  CustomRouterETHFactory,
-  MintableERC721Factory,
-  RouterETH,
-  RouterETHFactory,
-} from "../../types";
+import { BridgeIntegrationFactory, CustomRouterETHFactory, MintableERC721Factory } from "../../types";
 import { IDebtTokenFactory } from "../../types/IDebtTokenFactory";
 import { IStargateRouterFactory } from "../../types/IStargateRouterFactory";
-import { DRE, getDb, notFalsyOrZeroAddress, omit } from "../../helpers/misc-utils";
+import { getDb } from "../../helpers/misc-utils";
 import { waitForTx } from "../../helpers/misc-utils";
 import { L1ToL2MessageGasEstimator } from "@arbitrum/sdk";
 import { parseUnits } from "ethers/lib/utils";
@@ -184,11 +178,6 @@ task("test:sgRouterETH", "test bridging eth from test arb to rinkeby").setAction
       //   }
       // );
       // console.log(ethers.utils.formatEther(quoteData[0]));
-      // arb 0x7f9246106c33ECF3379D2be4664042349284f605
-      // rinkeby 0x2D57DbE0CFbe17FE654a0EBA64dF6a57ee389008
-      const routerETH = RouterETHFactory.connect("0x2D57DbE0CFbe17FE654a0EBA64dF6a57ee389008", signer);
-
-      await waitForTx(await routerETH.addLiquidityETH({ value: ethers.utils.parseEther("1") }));
 
       // await waitForTx(
       //   await routerETH.swapETH(

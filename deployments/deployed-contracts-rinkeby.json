@@ -216,7 +216,7 @@
     "deployer": "0xafF5C36642385b6c7Aaf7585eC785aB2316b5db6"
   },
   "BridgeIntegration": {
-    "address": "0xf903a6aFe268336F503C68EFFC0DC9D63D360Eb0",
+    "address": "0x5cCab6b94199206D8C859a9DF5e314A2e4707e1F",
     "deployer": "0x36dd48f087E63c3253510A0b916F225Dc4d462a2"
   }
 }

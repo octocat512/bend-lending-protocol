@@ -1,9 +1,8 @@
-import { BendUpgradeableProxyFactory, BendProxyAdminFactory } from "../types";
 import { IERC20DetailedFactory } from "../types/IERC20DetailedFactory";
 import { IERC721DetailedFactory } from "../types/IERC721DetailedFactory";
 import { getEthersSigners } from "./contracts-helpers";
-import { DRE, getDb, notFalsyOrZeroAddress, omit } from "./misc-utils";
-import { eContractid, PoolConfiguration, tEthereumAddress, TokenContractId, NftContractId } from "./types";
+import { DRE, getDb, omit } from "./misc-utils";
+import { eContractid, tEthereumAddress, TokenContractId, NftContractId } from "./types";
 
 export const getFirstSigner = async () => (await getEthersSigners())[0];
 
@@ -69,17 +68,3 @@ export const getPairsTokenAggregator = (
 
   return [mappedPairs, mappedAggregators];
 };
-
-export const getBendUpgradeableProxy = async (address: tEthereumAddress) =>
-  await BendUpgradeableProxyFactory.connect(address, await getDeploySigner());
-
-export const getBendProxyAdminByAddress = async (address: tEthereumAddress) =>
-  await BendProxyAdminFactory.connect(address, await getDeploySigner());
-
-export const getBendProxyAdminById = async (id: string) =>
-  await BendProxyAdminFactory.connect(
-    (
-      await getDb(DRE.network.name).get(`${id}`).value()
-    ).address,
-    await getDeploySigner()
-  );
