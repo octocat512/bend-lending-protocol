@@ -2,14 +2,14 @@
 pragma solidity 0.8.4;
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
-import {ILendPool} from "../interfaces/ILendPool.sol";
-import {ILendPoolLoan} from "../interfaces/ILendPoolLoan.sol";
-import {ILendPoolAddressesProvider} from "../interfaces/ILendPoolAddressesProvider.sol";
+import {ILendPool} from "../interfaces/Benddao/ILendPool.sol";
+import {ILendPoolLoan} from "../interfaces/Benddao/ILendPoolLoan.sol";
+import {ILendPoolAddressesProvider} from "../interfaces/Benddao/ILendPoolAddressesProvider.sol";
+import {IWETH} from "../interfaces/Benddao/IWETH.sol";
 import {IInbox} from "arb-bridge-eth/contracts/bridge/interfaces/IInbox.sol";
-import {IWETH} from "../interfaces/IWETH.sol";
-import {IStargateRouterETH} from "../interfaces/IStargateRouterETH.sol";
-import {IStargateReceiver} from "../interfaces/IStargateReceiver.sol";
-import {IStargateRouter} from "../interfaces/IStargateRouter.sol";
+import {IStargateRouterETH} from "../interfaces/Stargate/IStargateRouterETH.sol";
+import {IStargateReceiver} from "../interfaces/Stargate/IStargateReceiver.sol";
+import {IStargateRouter} from "../interfaces/Stargate/IStargateRouter.sol";
 import "hardhat/console.sol";
 
 struct TicketParams {

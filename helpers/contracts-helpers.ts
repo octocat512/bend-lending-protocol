@@ -16,15 +16,12 @@ import {
   iParamsPerNetworkAll,
   iEthereumParamsPerNetwork,
 } from "./types";
-import { MintableERC20 } from "../types/MintableERC20";
 import { MintableERC721 } from "../types/MintableERC721";
 import { Artifact } from "hardhat/types";
 import { verifyEtherscanContract } from "./etherscan-verification";
 import { getDeploySigner, getIErc20Detailed } from "./contracts-getters";
-import { ConfigNames, loadPoolConfig } from "./configuration";
 import { string } from "hardhat/internal/core/params/argumentTypes";
 
-export type MockTokenMap = { [symbol: string]: MintableERC20 };
 export type MockNftMap = { [symbol: string]: MintableERC721 };
 
 export const registerContractInJsonDb = async (contractId: string, contractInstance: Contract) => {
@@ -304,21 +301,4 @@ export const verifyContract = async (id: string, instance: Contract, args: (stri
     await verifyEtherscanContract(instance.address, args);
   }
   return instance;
-};
-
-export const getContractAddressWithJsonFallback = async (id: string, pool: ConfigNames): Promise<tEthereumAddress> => {
-  const poolConfig = loadPoolConfig(pool);
-  const network = <eNetwork>DRE.network.name;
-  const db = getDb(network);
-
-  const contractAtMarketConfig = getOptionalParamAddressPerNetwork(poolConfig[id], network);
-  if (notFalsyOrZeroAddress(contractAtMarketConfig)) {
-    return contractAtMarketConfig;
-  }
-
-  const contractAtDb = await getDb(DRE.network.name).get(`${id}`).value();
-  if (contractAtDb?.address) {
-    return contractAtDb.address as tEthereumAddress;
-  }
-  throw Error(`Missing contract address ${id} at Market config and JSON local db`);
 };

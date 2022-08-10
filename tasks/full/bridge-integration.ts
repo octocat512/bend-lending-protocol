@@ -6,11 +6,11 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
   BridgeIntegrationFactory,
   CustomRouterETHFactory,
-  DebtTokenFactory,
   MintableERC721Factory,
   RouterETH,
   RouterETHFactory,
 } from "../../types";
+import { IDebtTokenFactory } from "../../types/IDebtTokenFactory";
 import { IStargateRouterFactory } from "../../types/IStargateRouterFactory";
 import { DRE, getDb, notFalsyOrZeroAddress, omit } from "../../helpers/misc-utils";
 import { waitForTx } from "../../helpers/misc-utils";
@@ -49,20 +49,6 @@ task("deploy:bridge-integration", "Deploy bridge integration contract and initia
     }
   });
 
-task("full:verify-debt-token", "verify the debt token")
-  .addFlag("verify", "Verify contracts at Etherscan")
-  // .addParam("pool", `Pool name to retrieve configuration, supported: ${Object.values(ConfigNames)}`)
-  .setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
-    try {
-      await DRE.run("set-DRE");
-      const debtToken = DebtTokenFactory.connect("0x054FC05030A65bb30671f28Ea5d668f56e4970D7", await getDeploySigner());
-
-      return withSaveAndVerify(debtToken, eContractid.DebtToken, [], true);
-    } catch (error) {
-      throw error;
-    }
-  });
-
 task("test:borrow", "borrow and teleport eth").setAction(async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
   try {
     await DRE.run("set-DRE");
@@ -93,7 +79,7 @@ task("test:borrow", "borrow and teleport eth").setAction(async ({ verify }, DRE:
 
     //delegate DebtToken approveDelegation
     // const debtTokenAddr = (await getDb(DRE.network.name).get(eContractid.DebtToken).value()).address;
-    const debtToken = DebtTokenFactory.connect("0x054fc05030a65bb30671f28ea5d668f56e4970d7", deployer);
+    const debtToken = IDebtTokenFactory.connect("0x054fc05030a65bb30671f28ea5d668f56e4970d7", deployer);
     await waitForTx(
       await debtToken.approveDelegation(bridgeIntegrationAddr, "1230000000000000000000000000000000000000000000")
     );

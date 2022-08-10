@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.4;
 
-import {ILendPoolAddressesProvider} from "../interfaces/ILendPoolAddressesProvider.sol";
+import {ILendPoolAddressesProvider} from "./ILendPoolAddressesProvider.sol";
 import {IIncentivesController} from "./IIncentivesController.sol";
 import {IScaledBalanceToken} from "./IScaledBalanceToken.sol";
 

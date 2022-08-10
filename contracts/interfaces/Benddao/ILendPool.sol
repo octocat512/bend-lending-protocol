@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 import {ILendPoolAddressesProvider} from "./ILendPoolAddressesProvider.sol";
-import {DataTypes} from "../libraries/types/DataTypes.sol";
+import {DataTypes} from "../../libraries/types/DataTypes.sol";
 
 interface ILendPool {
   /**
