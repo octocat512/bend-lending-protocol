@@ -211,7 +211,7 @@ task("test:sgRouterETH", "test bridging eth from test arb to rinkeby").setAction
   }
 );
 
-task("deploy:CustomRouterETH", "deploy a custom router on abitrum").setAction(
+task("deploy:custom-router-eth", "deploy a custom router on abitrum").setAction(
   async ({ verify }, DRE: HardhatRuntimeEnvironment) => {
     try {
       await DRE.run("set-DRE");

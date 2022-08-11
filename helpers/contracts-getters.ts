@@ -2,7 +2,7 @@ import { IERC20DetailedFactory } from "../types/IERC20DetailedFactory";
 import { IERC721DetailedFactory } from "../types/IERC721DetailedFactory";
 import { getEthersSigners } from "./contracts-helpers";
 import { DRE, getDb, omit } from "./misc-utils";
-import { eContractid, tEthereumAddress, TokenContractId, NftContractId } from "./types";
+import { eContractid, tEthereumAddress } from "./types";
 
 export const getFirstSigner = async () => (await getEthersSigners())[0];
 

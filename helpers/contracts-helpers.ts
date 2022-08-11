@@ -3,7 +3,7 @@ import { signTypedData_v4 } from "eth-sig-util";
 import { fromRpcSig, ECDSASignature } from "ethereumjs-util";
 import BigNumber from "bignumber.js";
 import { ZERO_ADDRESS } from "./constants";
-import { getDb, DRE, waitForTx, notFalsyOrZeroAddress } from "./misc-utils";
+import { getDb, DRE, waitForTx } from "./misc-utils";
 import {
   tEthereumAddress,
   eContractid,
@@ -20,7 +20,6 @@ import { MintableERC721 } from "../types/MintableERC721";
 import { Artifact } from "hardhat/types";
 import { verifyEtherscanContract } from "./etherscan-verification";
 import { getDeploySigner, getIErc20Detailed } from "./contracts-getters";
-import { string } from "hardhat/internal/core/params/argumentTypes";
 
 export type MockNftMap = { [symbol: string]: MintableERC721 };
 

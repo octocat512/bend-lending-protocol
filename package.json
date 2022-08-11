@@ -1,7 +1,7 @@
 {
-  "name": "@benddao/bend-protocol",
+  "name": "nft-as-collateral",
   "version": "1.0.2",
-  "description": "Bend Protocol smart contracts",
+  "description": "nft as collateral",
   "files": [
     "contracts",
     "artifacts"
