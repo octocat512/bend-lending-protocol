@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import "../interfaces/Stargate/IStargateRouter.sol";
 import "../interfaces/Stargate/IStargateEthVault.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 
 contract CustomRouterETH {
   struct NFTLoanInfo {
@@ -14,17 +15,20 @@ contract CustomRouterETH {
   address public immutable stargateEthVault;
   IStargateRouter public immutable stargateRouter;
   uint16 public immutable poolId;
+  address public immutable weth;
 
   constructor(
     address _stargateEthVault,
     address _stargateRouter,
-    uint16 _poolId
+    uint16 _poolId,
+    address _weth
   ) {
     require(_stargateEthVault != address(0x0), "RouterETH: _stargateEthVault cant be 0x0");
     require(_stargateRouter != address(0x0), "RouterETH: _stargateRouter cant be 0x0");
     stargateEthVault = _stargateEthVault;
     stargateRouter = IStargateRouter(_stargateRouter);
     poolId = _poolId;
+    weth = _weth;
   }
 
   function addLiquidityETH() external payable {
@@ -72,6 +76,11 @@ contract CustomRouterETH {
       _toAddress, // address on destination to send to
       abi.encode(info.asset, info.tokenID, info.owner) // empty payload, since sending to EOA
     );
+  }
+
+  function redeem(address to) external payable {
+    IWETH(weth).deposit{value: msg.value}();
+    IWETH(weth).transferFrom(address(this), to, msg.value);
   }
 
   // this contract needs to accept ETH

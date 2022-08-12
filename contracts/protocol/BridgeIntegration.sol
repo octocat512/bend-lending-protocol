@@ -5,12 +5,13 @@ import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC7
 import {ILendPool} from "../interfaces/Benddao/ILendPool.sol";
 import {ILendPoolLoan} from "../interfaces/Benddao/ILendPoolLoan.sol";
 import {ILendPoolAddressesProvider} from "../interfaces/Benddao/ILendPoolAddressesProvider.sol";
-import {IWETH} from "../interfaces/Benddao/IWETH.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 import {IInbox} from "arb-bridge-eth/contracts/bridge/interfaces/IInbox.sol";
 import {IStargateRouterETH} from "../interfaces/Stargate/IStargateRouterETH.sol";
 import {IStargateReceiver} from "../interfaces/Stargate/IStargateReceiver.sol";
 import {IStargateRouter} from "../interfaces/Stargate/IStargateRouter.sol";
 import "hardhat/console.sol";
+import {CustomRouterETH} from "./CustomRouterETH.sol";
 
 struct TicketParams {
   address target;
@@ -74,7 +75,7 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
 
     // teleportETH
     // use standard
-    bytes memory data = abi.encodeWithSelector(BridgeIntegration.redeem.selector, onBehalfOf);
+    bytes memory data = abi.encodeWithSelector(CustomRouterETH.redeem.selector, onBehalfOf);
 
     return
       _inbox.createRetryableTicket{value: amount}(
@@ -122,11 +123,6 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     if (amountLD > paybackAmount) {
       _safeTransferETH(onBeHalfOf, amountLD - paybackAmount);
     }
-  }
-
-  // function is used on l2
-  function redeem(address to) external payable {
-    _safeTransferETH(to, msg.value);
   }
 
   function _safeTransferETH(address to, uint256 value) internal {

@@ -222,12 +222,18 @@ task("deploy:custom-router-eth", "deploy a custom router on abitrum").setAction(
       const customRouter = await new CustomRouterETHFactory(signer).deploy(
         "0x1450e45e7345c4f6967b2A7DD91d9b0D3f65ff83",
         "0x6701D9802aDF674E524053bd44AA83ef253efc41",
-        "13"
+        "13",
+        "0xEBbc3452Cc911591e4F18f3b36727Df45d6bd1f9"
       );
       return withSaveAndVerify(
         customRouter,
         "CustomRouterETH",
-        ["0x1450e45e7345c4f6967b2A7DD91d9b0D3f65ff83", "0x6701D9802aDF674E524053bd44AA83ef253efc41", "13"],
+        [
+          "0x1450e45e7345c4f6967b2A7DD91d9b0D3f65ff83",
+          "0x6701D9802aDF674E524053bd44AA83ef253efc41",
+          "13",
+          "0xEBbc3452Cc911591e4F18f3b36727Df45d6bd1f9",
+        ],
         true
       );
     } catch (error) {
