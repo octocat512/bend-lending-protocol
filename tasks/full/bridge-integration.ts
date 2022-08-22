@@ -22,16 +22,10 @@ task("deploy:bridge-integration", "Deploy bridge integration contract and initia
       await DRE.run("set-DRE");
       // const network = <eNetwork>DRE.network.name;
       // const wethGatewayAddr = await getContractAddressInDb(eContractid.WETHGateway);
-      const bridgeIntegration = await new BridgeIntegrationFactory(await getDeploySigner()).deploy();
-      // await insertContractAddressInDb(eContractid.BridgeIntegration, bridgeIntegration.address);
-      console.log("initializing");
-      await waitForTx(
-        await bridgeIntegration.initialize(
-          "0xE55870eBB007a50B0dfAbAdB1a21e4bFcee5299b",
-          "0xc778417e063141139fce010982780140aa0cd5ab",
-          "0x578bade599406a8fe3d24fd7f7211c0911f5b29e",
-          { gasLimit: 1000000 }
-        )
+      const bridgeIntegration = await new BridgeIntegrationFactory(await getDeploySigner()).deploy(
+        "0xE55870eBB007a50B0dfAbAdB1a21e4bFcee5299b",
+        "0xc778417e063141139fce010982780140aa0cd5ab",
+        "0x578bade599406a8fe3d24fd7f7211c0911f5b29e"
       );
 
       await waitForTx(await bridgeIntegration.authorizeLendPoolNFT([BAYCAddr]));

@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ILendPool} from "../interfaces/Benddao/ILendPool.sol";
 import {ILendPoolLoan} from "../interfaces/Benddao/ILendPoolLoan.sol";
 import {ILendPoolAddressesProvider} from "../interfaces/Benddao/ILendPoolAddressesProvider.sol";
@@ -21,24 +22,53 @@ struct TicketParams {
   uint256 gasPriceBid;
 }
 
-contract BridgeIntegration is ERC721Holder, IStargateReceiver {
+contract BridgeIntegration is ERC721Holder, IStargateReceiver, Ownable {
   ILendPoolAddressesProvider internal _addressProvider;
 
   IWETH internal WETH;
 
   IInbox internal _inbox;
 
-  function initialize(
+  uint256 private constant _NOT_ENTERED = 0;
+  uint256 private constant _ENTERED = 1;
+  uint256 private _status;
+
+  /**
+   * @dev Prevents a contract from calling itself, directly or indirectly.
+   * Calling a `nonReentrant` function from another `nonReentrant`
+   * function is not supported. It is possible to prevent this from happening
+   * by making the `nonReentrant` function external, and making it call a
+   * `private` function that does the actual work.
+   */
+  modifier nonReentrant() {
+    // On the first call to nonReentrant, _notEntered will be true
+    require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+
+    // Any calls to nonReentrant after this point will fail
+    _status = _ENTERED;
+
+    _;
+
+    // By storing the original value once again, a refund is triggered (see
+    // https://eips.ethereum.org/EIPS/eip-2200)
+    _status = _NOT_ENTERED;
+  }
+
+  constructor(
     address addressProvider,
     address weth,
     address inbox
-  ) public {
+  ) Ownable() {
     _addressProvider = ILendPoolAddressesProvider(addressProvider);
     _inbox = IInbox(inbox);
     WETH = IWETH(weth);
 
     WETH.approve(address(_getLendPool()), type(uint256).max);
   }
+
+  receive() external payable {}
+
+  fallback() external payable {}
 
   function _getLendPool() internal view returns (ILendPool) {
     return ILendPool(_addressProvider.getLendPool());
@@ -48,7 +78,7 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     return ILendPoolLoan(_addressProvider.getLendPoolLoan());
   }
 
-  function authorizeLendPoolNFT(address[] calldata nftAssets) external {
+  function authorizeLendPoolNFT(address[] calldata nftAssets) external nonReentrant onlyOwner {
     for (uint256 i = 0; i < nftAssets.length; i++) {
       IERC721Upgradeable(nftAssets[i]).setApprovalForAll(address(_getLendPool()), true);
     }
@@ -61,7 +91,7 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     address onBehalfOf,
     uint16 referralCode,
     TicketParams calldata ticket
-  ) external returns (uint256) {
+  ) external nonReentrant returns (uint256) {
     // borrowETH
     ILendPool cachedPool = _getLendPool();
     ILendPoolLoan cachedPoolLoan = _getLendPoolLoan();
@@ -97,7 +127,7 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     address _token, // the token contract on the local chain
     uint256 amountLD, // the qty of local _token contract tokens
     bytes memory payload
-  ) external payable override {
+  ) external payable override nonReentrant {
     (address nftAsset, uint256 nftTokenId, address onBeHalfOf) = abi.decode(payload, (address, uint256, address));
 
     ILendPool cachedPool = _getLendPool();
@@ -129,8 +159,4 @@ contract BridgeIntegration is ERC721Holder, IStargateReceiver {
     (bool success, ) = to.call{value: value}(new bytes(0));
     require(success, "ETH_TRANSFER_FAILED");
   }
-
-  receive() external payable {}
-
-  fallback() external payable {}
 }
